@@ -1,0 +1,19 @@
+{
+  "players": [
+    {
+      "id": "AS",
+      "name": "Simon Burgos",
+      "cards": [1, 5, 12, 23, 37]
+    },
+    {
+      "id": "2H",
+      "name": "Juan Perez",
+      "cards": [3, 8, 15, 27, 42]
+    },
+    {
+      "id": "3H",
+      "name": "Maria Gomez",
+      "cards": [2, 10, 19, 31, 48]
+    }
+  ]
+}
