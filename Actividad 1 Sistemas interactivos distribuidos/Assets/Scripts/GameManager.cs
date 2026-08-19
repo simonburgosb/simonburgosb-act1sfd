@@ -1,31 +1,36 @@
 ﻿using System;
 using System.Collections;
 using UnityEngine;
-using UnityEngine.Networking;
+using UnityEngine.UI;
 using TMPro;
 
 public class GameManager : MonoBehaviour
 {
     [Header("MANAGERS")]
+
     public ApiManager apiManager;
+
     public PlayerManager playerManager;
 
 
     [Header("API FALSA")]
-    public string playersApiUrl;
+
+    public string playersApiUrl =
+        "https://my-json-server.typicode.com/simonburgosb/simonburgosb-act1sfd/players";
 
 
     [Header("UI")]
+
     public TMP_Text playerNameText;
+
     public TMP_Text statusText;
 
 
     [Header("CARTAS")]
+
     public Transform cardsContainer;
+
     public GameObject cardPrefab;
-
-
-    private string deckId;
 
 
     // ============================================================
@@ -34,17 +39,22 @@ public class GameManager : MonoBehaviour
 
     private void Start()
     {
-        StartCoroutine(StartGame());
+        StartCoroutine(
+            LoadPlayers()
+        );
     }
 
 
     // ============================================================
-    // INICIAR
+    // CARGAR JUGADORES
     // ============================================================
 
-    private IEnumerator StartGame()
+    private IEnumerator LoadPlayers()
     {
-        ShowStatus("Conectando con la API...");
+        ShowStatus(
+            "Cargando jugadores..."
+        );
+
 
         yield return StartCoroutine(
             apiManager.GetPlayers(
@@ -57,124 +67,102 @@ public class GameManager : MonoBehaviour
 
 
     // ============================================================
-    // RECIBIR JUGADORES
+    // JUGADORES RECIBIDOS
     // ============================================================
 
-    private void OnPlayersReceived(string json)
+    private void OnPlayersReceived(
+        string json)
     {
-        playerManager.LoadPlayersFromJson(json);
+        playerManager
+            .LoadPlayersFromJson(json);
+
 
         Player player =
-            playerManager.GetCurrentPlayer();
+            playerManager
+            .GetCurrentPlayer();
+
 
         if (player == null)
         {
-            ShowStatus("No se encontraron jugadores.");
+            ShowStatus(
+                "No se encontraron jugadores."
+            );
+
             return;
         }
 
-        if (playerNameText != null)
-        {
-            playerNameText.text =
-                "Jugador: " + player.name;
-        }
 
         LoadCurrentPlayer();
     }
 
 
     // ============================================================
-    // CARGAR JUGADOR
+    // CARGAR JUGADOR ACTUAL
     // ============================================================
 
     public void LoadCurrentPlayer()
     {
         ClearCards();
 
+
         Player player =
-            playerManager.GetCurrentPlayer();
+            playerManager
+            .GetCurrentPlayer();
+
 
         if (player == null)
         {
-            ShowStatus("No hay jugador seleccionado.");
+            ShowStatus(
+                "No hay jugador seleccionado."
+            );
+
             return;
         }
+
 
         if (playerNameText != null)
         {
             playerNameText.text =
-                "Jugador: " + player.name;
+                "Jugador: " +
+                player.name;
         }
+
 
         if (player.cards == null ||
             player.cards.Length == 0)
         {
             ShowStatus(
-                "El jugador no tiene cartas."
+                "Este jugador no tiene cartas."
             );
 
             return;
         }
 
+
         ShowStatus(
-            "Consultando cartas de " +
-            player.name + "..."
+            "Buscando personajes..."
         );
 
+
         StartCoroutine(
-            LoadPlayerCards(player.cards)
+            LoadCharacters(
+                player.cards
+            )
         );
     }
 
 
     // ============================================================
-    // CONVERTIR IDS Y CONSULTAR API EXTERNA
+    // CONSULTAR RICK AND MORTY
     // ============================================================
 
-    private IEnumerator LoadPlayerCards(
+    private IEnumerator LoadCharacters(
         int[] cardIds)
     {
-        string cardCodes = "";
-
-        for (int i = 0; i < cardIds.Length; i++)
-        {
-            string code =
-                ConvertIdToCardCode(cardIds[i]);
-
-            if (string.IsNullOrEmpty(code))
-            {
-                Debug.LogWarning(
-                    "ID de carta inválido: " +
-                    cardIds[i]
-                );
-
-                continue;
-            }
-
-            if (cardCodes != "")
-            {
-                cardCodes += ",";
-            }
-
-            cardCodes += code;
-        }
-
-        Debug.Log(
-            "IDs convertidos a códigos: " +
-            cardCodes
-        );
-
-        ShowStatus(
-            "Consultando API externa..."
-        );
-
-        // Crear un mazo que contenga exactamente
-        // las cartas del jugador.
-
         yield return StartCoroutine(
-            apiManager.CreatePartialDeck(
-                cardCodes,
-                OnDeckCreated,
+            apiManager.GetCharacters(
+                cardIds,
+                OnCharactersReceived,
                 OnApiError
             )
         );
@@ -182,144 +170,78 @@ public class GameManager : MonoBehaviour
 
 
     // ============================================================
-    // MAZO CREADO
+    // RECIBIR PERSONAJES
     // ============================================================
 
-    private void OnDeckCreated(string json)
+    private void OnCharactersReceived(
+        string json)
     {
-        DeckData deckData;
-
-        try
-        {
-            deckData =
-                JsonUtility.FromJson<DeckData>(json);
-        }
-        catch (Exception error)
-        {
-            Debug.LogError(
-                "Error procesando mazo: " +
-                error.Message
-            );
-
-            ShowStatus(
-                "Error procesando API de cartas."
-            );
-
-            return;
-        }
-
-        if (deckData == null ||
-            string.IsNullOrEmpty(deckData.deck_id))
-        {
-            ShowStatus(
-                "No se pudo crear el mazo."
-            );
-
-            return;
-        }
-
-        deckId = deckData.deck_id;
-
         Debug.Log(
-            "Mazo creado: " + deckId
+            "Procesando personajes..."
         );
 
-        ShowStatus(
-            "Obteniendo información de las cartas..."
-        );
 
-        // Ahora sacamos todas las cartas.
+        GraphQLResponse response;
 
-        Player player =
-            playerManager.GetCurrentPlayer();
-
-        StartCoroutine(
-            apiManager.DrawCards(
-                deckId,
-                player.cards.Length,
-                OnCardsReceived,
-                OnApiError
-            )
-        );
-    }
-
-
-    // ============================================================
-    // RECIBIR CARTAS
-    // ============================================================
-
-    private void OnCardsReceived(string json)
-    {
-        CardResponse response;
 
         try
         {
             response =
-                JsonUtility.FromJson<CardResponse>(json);
+                JsonUtility.FromJson
+                <GraphQLResponse>(
+                    json
+                );
         }
         catch (Exception error)
         {
             Debug.LogError(
-                "Error procesando cartas: " +
+                "Error procesando GraphQL: " +
                 error.Message
             );
 
             ShowStatus(
-                "Error procesando las cartas."
+                "Error procesando personajes."
             );
 
             return;
         }
+
 
         if (response == null ||
-            response.cards == null ||
-            response.cards.Length == 0)
+            response.data == null ||
+            response.data.charactersByIds == null)
         {
-            Debug.LogError(
-                "La API no devolvió cartas."
-            );
-
             ShowStatus(
-                "No se recibieron cartas."
+                "No se recibieron personajes."
             );
 
             return;
         }
+
+
+        CharacterData[] characters =
+            response.data.charactersByIds;
 
 
         Debug.Log(
-            "Cartas recibidas: " +
-            response.cards.Length
+            "Personajes recibidos: " +
+            characters.Length
         );
 
 
-        // Crear las cartas visualmente.
+        // --------------------------------------------------------
+        // Crear las cartas
+        // --------------------------------------------------------
 
         for (int i = 0;
-             i < response.cards.Length;
+             i < characters.Length;
              i++)
         {
-            CardData card =
-                response.cards[i];
-
-            GameObject cardObject =
-                CreateCard(
-                    i + 1,
-                    card.value,
-                    card.suit
-                );
-
-            if (cardObject != null &&
-                !string.IsNullOrEmpty(card.image))
-            {
-                StartCoroutine(
-                    DownloadCardImage(
-                        card.image,
-                        cardObject
-                    )
-                );
-            }
+            CreateCard(
+                characters[i]
+            );
         }
+
 
         ShowStatus(
             "Baraja cargada correctamente."
@@ -331,10 +253,8 @@ public class GameManager : MonoBehaviour
     // CREAR CARTA
     // ============================================================
 
-    private GameObject CreateCard(
-        int id,
-        string value,
-        string suit)
+    private void CreateCard(
+        CharacterData character)
     {
         if (cardPrefab == null)
         {
@@ -342,176 +262,70 @@ public class GameManager : MonoBehaviour
                 "No asignaste Card Prefab."
             );
 
-            return null;
+            return;
         }
 
-        if (cardsContainer == null)
-        {
-            Debug.LogError(
-                "No asignaste Cards Container."
-            );
 
-            return null;
-        }
-
-        GameObject newCard =
+        GameObject cardObject =
             Instantiate(
                 cardPrefab,
                 cardsContainer
             );
 
+
         CardUI cardUI =
-            newCard.GetComponent<CardUI>();
+            cardObject
+            .GetComponent<CardUI>();
+
 
         if (cardUI != null)
         {
             cardUI.SetCard(
-                id,
-                value,
-                TranslateSuit(suit)
+                character.id,
+                character.name
             );
         }
 
-        return newCard;
-    }
 
+        // Descargar imagen
 
-    // ============================================================
-    // DESCARGAR IMAGEN
-    // ============================================================
-
-    private IEnumerator DownloadCardImage(
-        string imageUrl,
-        GameObject cardObject)
-    {
-        Debug.Log(
-            "Descargando imagen: " +
-            imageUrl
-        );
-
-        using (
-            UnityWebRequest request =
-            UnityWebRequestTexture.GetTexture(
-                imageUrl
-            )
-        )
-        {
-            yield return request.SendWebRequest();
-
-            if (
-                request.result ==
-                UnityWebRequest.Result.Success
-            )
-            {
-                Texture2D texture =
-                    DownloadHandlerTexture
-                    .GetContent(request);
-
-                Sprite sprite =
-                    Sprite.Create(
-                        texture,
-                        new Rect(
-                            0,
-                            0,
-                            texture.width,
-                            texture.height
-                        ),
-                        new Vector2(
-                            0.5f,
-                            0.5f
-                        )
-                    );
-
-                CardUI cardUI =
-                    cardObject.GetComponent<CardUI>();
-
-                if (cardUI != null)
+        StartCoroutine(
+            apiManager.DownloadImage(
+                character.image,
+                texture =>
                 {
-                    cardUI.SetImage(sprite);
+                    Sprite sprite =
+                        Sprite.Create(
+                            texture,
+                            new Rect(
+                                0,
+                                0,
+                                texture.width,
+                                texture.height
+                            ),
+                            new Vector2(
+                                0.5f,
+                                0.5f
+                            )
+                        );
+
+
+                    if (cardUI != null)
+                    {
+                        cardUI.SetImage(
+                            sprite
+                        );
+                    }
+                },
+                error =>
+                {
+                    Debug.LogError(
+                        "Error imagen: " +
+                        error
+                    );
                 }
-            }
-            else
-            {
-                Debug.LogError(
-                    "Error descargando imagen: " +
-                    request.error
-                );
-            }
-        }
-    }
-
-
-    // ============================================================
-    // ID → CÓDIGO DE CARTA
-    // ============================================================
-
-    private string ConvertIdToCardCode(int id)
-    {
-        if (id < 1 || id > 52)
-        {
-            return "";
-        }
-
-        string[] suits =
-        {
-            "S",
-            "H",
-            "D",
-            "C"
-        };
-
-        string[] values =
-        {
-            "A",
-            "2",
-            "3",
-            "4",
-            "5",
-            "6",
-            "7",
-            "8",
-            "9",
-            "0",
-            "J",
-            "Q",
-            "K"
-        };
-
-        int suitIndex =
-            (id - 1) / 13;
-
-        int valueIndex =
-            (id - 1) % 13;
-
-        return
-            values[valueIndex]
-            + suits[suitIndex];
-    }
-
-
-    // ============================================================
-    // TRADUCIR PALO
-    // ============================================================
-
-    private string TranslateSuit(string suit)
-    {
-        switch (suit)
-        {
-            case "SPADES":
-                return "PICAS";
-
-            case "HEARTS":
-                return "CORAZONES";
-
-            case "DIAMONDS":
-                return "DIAMANTES";
-
-            case "CLUBS":
-                return "TREBOLES";
-
-            default:
-                return suit;
-        }
+            )
+        );
     }
 
 
@@ -521,7 +335,8 @@ public class GameManager : MonoBehaviour
 
     public void NextUser()
     {
-        playerManager.NextPlayer();
+        playerManager
+            .NextPlayer();
 
         LoadCurrentPlayer();
     }
@@ -533,7 +348,8 @@ public class GameManager : MonoBehaviour
 
     public void PreviousUser()
     {
-        playerManager.PreviousPlayer();
+        playerManager
+            .PreviousPlayer();
 
         LoadCurrentPlayer();
     }
@@ -550,16 +366,18 @@ public class GameManager : MonoBehaviour
             return;
         }
 
+
         for (
-            int i = cardsContainer.childCount - 1;
+            int i =
+            cardsContainer.childCount - 1;
             i >= 0;
             i--
         )
         {
             Destroy(
                 cardsContainer
-                    .GetChild(i)
-                    .gameObject
+                .GetChild(i)
+                .gameObject
             );
         }
     }
@@ -569,13 +387,16 @@ public class GameManager : MonoBehaviour
     // ESTADO
     // ============================================================
 
-    private void ShowStatus(string message)
+    private void ShowStatus(
+        string message)
     {
         Debug.Log(message);
 
+
         if (statusText != null)
         {
-            statusText.text = message;
+            statusText.text =
+                message;
         }
     }
 
@@ -584,48 +405,40 @@ public class GameManager : MonoBehaviour
     // ERROR
     // ============================================================
 
-    private void OnApiError(string error)
+    private void OnApiError(
+        string error)
     {
         ShowStatus(
-            "Error de conexión: " + error
-        );
-
-        Debug.LogError(
-            "API ERROR: " + error
+            "Error: " + error
         );
     }
 }
 
 
 // =================================================================
-// MODELOS JSON
+// MODELOS GRAPHQL
 // =================================================================
 
 [Serializable]
-public class DeckData
+public class GraphQLResponse
 {
-    public bool success;
-    public string deck_id;
-    public bool shuffled;
-    public int remaining;
+    public GraphQLData data;
 }
 
 
 [Serializable]
-public class CardResponse
+public class GraphQLData
 {
-    public bool success;
-    public string deck_id;
-    public CardData[] cards;
-    public int remaining;
+    public CharacterData[] charactersByIds;
 }
 
 
 [Serializable]
-public class CardData
+public class CharacterData
 {
+    public int id;
+
+    public string name;
+
     public string image;
-    public string value;
-    public string suit;
-    public string code;
 }

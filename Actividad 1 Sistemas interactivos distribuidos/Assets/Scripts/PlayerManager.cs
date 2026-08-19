@@ -21,20 +21,32 @@ public class PlayerManager : MonoBehaviour
 
     private int currentPlayerIndex = 0;
 
+
     public void LoadPlayersFromJson(string json)
     {
         try
         {
-            Debug.Log("JSON recibido:");
+            Debug.Log(
+                "JSON recibido:"
+            );
+
             Debug.Log(json);
 
+
+            // My JSON Server devuelve directamente
+            // el array de jugadores.
+
             string wrappedJson =
-                "{\"players\":" + json + "}";
+                "{\"players\":" +
+                json +
+                "}";
+
 
             PlayerList playerList =
                 JsonUtility.FromJson<PlayerList>(
                     wrappedJson
                 );
+
 
             if (playerList == null ||
                 playerList.players == null)
@@ -46,9 +58,13 @@ public class PlayerManager : MonoBehaviour
                 return;
             }
 
-            players = playerList.players;
+
+            players =
+                playerList.players;
+
 
             currentPlayerIndex = 0;
+
 
             Debug.Log(
                 "Jugadores cargados: " +
@@ -58,11 +74,12 @@ public class PlayerManager : MonoBehaviour
         catch (Exception error)
         {
             Debug.LogError(
-                "Error procesando JSON: " +
+                "Error procesando jugadores: " +
                 error.Message
             );
         }
     }
+
 
     public Player GetCurrentPlayer()
     {
@@ -72,8 +89,11 @@ public class PlayerManager : MonoBehaviour
             return null;
         }
 
-        return players[currentPlayerIndex];
+        return players[
+            currentPlayerIndex
+        ];
     }
+
 
     public Player NextPlayer()
     {
@@ -83,15 +103,20 @@ public class PlayerManager : MonoBehaviour
             return null;
         }
 
+
         currentPlayerIndex++;
 
-        if (currentPlayerIndex >= players.Length)
+
+        if (currentPlayerIndex >=
+            players.Length)
         {
             currentPlayerIndex = 0;
         }
 
+
         return GetCurrentPlayer();
     }
+
 
     public Player PreviousPlayer()
     {
@@ -101,13 +126,16 @@ public class PlayerManager : MonoBehaviour
             return null;
         }
 
+
         currentPlayerIndex--;
+
 
         if (currentPlayerIndex < 0)
         {
             currentPlayerIndex =
                 players.Length - 1;
         }
+
 
         return GetCurrentPlayer();
     }

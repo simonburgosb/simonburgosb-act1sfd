@@ -4,43 +4,40 @@ using TMPro;
 
 public class CardUI : MonoBehaviour
 {
-    [Header("Textos")]
-    public TMP_Text idText;
-    public TMP_Text nameText;
-    public TMP_Text suitText;
-
-    [Header("Imagen")]
+    [Header("REFERENCIAS")]
     public Image cardImage;
+    public TMP_Text nameText;
 
-
-    public void SetCard(
-        int id,
-        string value,
-        string suit)
+    public void SetCard(int id, string characterName)
     {
-        if (idText != null)
+        Debug.Log("NOMBRE RECIBIDO: " + characterName);
+
+        if (nameText == null)
         {
-            idText.text = "ID: " + id;
+            Debug.LogError("? nameText está vacío.");
+            return;
         }
 
-        if (nameText != null)
-        {
-            nameText.text = value;
-        }
+        Debug.Log(
+            "Text encontrado: " +
+            nameText.gameObject.name
+        );
 
-        if (suitText != null)
-        {
-            suitText.text = suit;
-        }
+        nameText.text = characterName;
+
+        // Para asegurarnos de que sea visible
+        nameText.gameObject.SetActive(true);
     }
-
 
     public void SetImage(Sprite sprite)
     {
-        if (cardImage != null)
+        if (cardImage == null)
         {
-            cardImage.sprite = sprite;
-            cardImage.enabled = true;
+            Debug.LogError("? cardImage está vacío.");
+            return;
         }
+
+        cardImage.sprite = sprite;
+        cardImage.enabled = true;
     }
 }
